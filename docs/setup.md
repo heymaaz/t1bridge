@@ -102,6 +102,10 @@ tested, complete installation with a reboot rather than raw USB toggles.
 
 ## Import this machine's Apple data
 
+Use local data first: preserved EFI, then a verified backup from this same Mac.
+Import reads those sources and extracts Touch ID calibration; it does not
+restore the complete EFI boot tree, download firmware, or run regeneration.
+
 With the matching preserved Apple EFI partition attached:
 
 ```sh
@@ -116,6 +120,16 @@ error, not permission to choose an arbitrary partition.
 
 Already-mounted EFI partitions are inspected through a private read-only view;
 the importer does not change their existing mount flags.
+
+On 0.1.9, automatic import can fail with exit 30 and `private import temporary
+file could not be created`, even when the destination is writable outside the
+service ([#36](https://github.com/standardagents/t1bridge/issues/36)). EFI
+discovery changes mount namespaces; the old storage handle can miss the
+service's writable mount. Version 0.1.10 reacquires that handle before commit.
+On older packages, use the explicit source command below with this Mac's
+preserved EFI tree or backup. Changing `WorkingDirectory` or
+loosening the service sandbox is not needed. That exit-30 message identifies
+the commit stage; an EFI discovery failure is reported as a source failure.
 
 To use a backup instead, supply its absolute path:
 
@@ -135,12 +149,28 @@ Run import while no fingerprint operation is in progress. A sensor-unavailable
 error does not change calibration; retry when the reader is idle rather than
 resetting hardware or deleting state.
 
+Use the import exit category to choose the next step. An import failure never
+automatically triggers online recovery:
+
+| Exit | Meaning and next step |
+| --- | --- |
+| 20 | Sensor unavailable. Resolve hardware/service readiness and retry while idle. |
+| 21 | Discovery found no preserved local source. Check the available EFI partitions, then select a verified same-Mac backup explicitly. |
+| 22 | Source unreadable. Resolve access, mount or read errors; this does not establish data loss. |
+| 23–25 | Invalid, nonmatching or conflicting data. Resolve the source problem; never use donor data or choose an arbitrary record. |
+| 26–30 | Import reservation or protected-storage failure. Resolve that failure; do not delete working calibration or regenerate firmware. |
+
 Compressed backups and macOS installer/disk-image containers are not accepted
 by this command yet. Extract a backup you control first; do not copy guessed
 records into protected storage. An installer archive is not this Mac's
 calibration backup. If the data was lost, restore macOS on this Mac and complete
 its first boot, then preserve and back up the regenerated EFI data. This is a
 macOS recovery procedure, not something the T1Bridge importer performs.
+
+A separate Linux recovery project is under [source and integration
+review](linux-recovery.md). Consider that attended online route only after
+usable local EFI and same-Mac backups have been exhausted. Its reported results
+do not yet establish a supported T1Bridge installer recovery path.
 
 ## Enroll and verify
 
@@ -214,6 +244,48 @@ sudo, Polkit, and the lock screen. Never assume that success in one consumer
 proves the others. T1Bridge's Touch Bar prompt is cosmetic, not proof that the
 requesting application accepted authentication.
 
+### Omarchy lock-screen unlock
+
+After enrollment and `fprintd-verify` succeed, Omarchy's Quickshell lock screen
+also needs `/etc/pam.d/omarchy-lock-fingerprint`. It uses a separate
+`omarchy-lock-password` service for password unlock. These instructions apply
+to that lock screen, not older Hyprlock configurations or other desktops.
+
+First verify password unlock and keep the persistent root recovery shell
+described above open. If the fingerprint file already exists, back it up,
+inspect it, and preserve local account/access policy. To create a missing
+file, run:
+
+```sh
+sudoedit /etc/pam.d/omarchy-lock-fingerprint
+```
+
+Use the following configuration, matching
+[Omarchy's fingerprint service](https://github.com/basecamp/omarchy/blob/quattro/bin/omarchy-setup-security-fingerprint)
+with bounded attempts and a ten-second timeout:
+
+```text
+#%PAM-1.0
+auth       required    pam_fprintd.so max-tries=3 timeout=10
+account    include     system-local-login
+```
+
+Keep `/etc/pam.d/omarchy-lock-password` unchanged: password fallback is handled
+by the lock screen's independent password conversation, including when the
+fingerprint module, broker, socket, or device fails. This separate fingerprint
+service is not a replacement for a sudo, Polkit, or login PAM stack.
+
+Lock the screen and check fingerprint unlock, then verify password unlock
+after a failed or cancelled fingerprint attempt and with the fingerprint
+service unavailable. Keep the recovery shell open through these checks. To
+undo this setup, remove only the fingerprint file you created; restore a
+prior file from your backup if you edited one. Enrollment is unaffected.
+
+Do not run the generic Omarchy fingerprint setup wizard just to create this
+file: it can replace the matched T1Bridge libfprint/fprintd packages. This
+configuration enables lock-screen unlock only; sudo and Polkit remain
+separate consumers.
+
 ## Desktop controls and customization
 
 The default renderer is included. Hardware controls use T1Bridge's advertised
@@ -228,6 +300,33 @@ and restart it. Neither program should run as root. Follow the
 [provider and renderer contracts](interfaces.md#renderer-selection-v1), not a
 private hardware API. The reusable management TUI and baseline desktop provider
 are separate planned packages, not prerequisites for the commands above.
+
+### Omarchy session startup
+
+For Omarchy controls and HUDs, install the optional
+[t1bridge-omarchy integration](https://github.com/standardagents/t1bridge-omarchy#install-and-enable)
+version 0.2.2 or newer. It supplies package-owned XDG autostart; no per-user
+hook is required. The package's README owns migration from the older manual
+hook and removal instructions. Remove an old hook only after verifying that
+it points to this package's helper, to avoid a second restart at login.
+
+The core renderer starts with the user manager and can precede the graphical
+session. The optional integration skips a start with an absent or empty
+display environment, then invokes the packaged helper through XDG autostart
+after graphical-session readiness. It imports the required desktop variables
+and starts or restarts only an enabled renderer. Disabled/masked units and
+custom renderer selection are preserved. Cold-login hardware acceptance is
+still pending in [#35](https://github.com/standardagents/t1bridge/issues/35).
+After installing, log out and back in, or run the helper from a terminal
+inside the active Omarchy session:
+
+```sh
+/usr/lib/t1bridge-omarchy/session-start --autostart
+```
+
+Check controls and HUDs again after the next login. A renderer that now resolves
+its provider can still have a dark panel; that separate report is
+[#34](https://github.com/standardagents/t1bridge/issues/34).
 
 ## Firewall, recovery, and removal
 

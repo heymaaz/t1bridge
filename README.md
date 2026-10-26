@@ -43,9 +43,10 @@ streaming and system sleep/wake were not tested there. A
 [MacBookPro14,3 tester](https://github.com/standardagents/t1bridge/issues/2)
 confirmed enrollment after allowing xART on the private T1 link and a full
 shutdown/power-on, without replacing the packaged build or resetting saved data.
-This does not establish all functions on that model. Automatic EFI discovery
-still has an [open multi-ESP failure](https://github.com/standardagents/t1bridge/issues/9);
-explicit same-machine backup import works for those reporters.
+This does not establish all functions on that model. Version 0.1.10 fixes the
+[automatic-import sandbox failure](https://github.com/standardagents/t1bridge/issues/36)
+reproduced with synthetic storage; confirmation on the reporting machine is
+pending. Explicit same-machine backup import works for those reporters.
 A [MacBookPro14,2 tester](https://github.com/standardagents/t1bridge/issues/2#issuecomment-5563782774)
 reported Touch Bar, enrollment/verification, sudo and lock authentication on
 v0.1.1, with controls persisting after reboot. Camera capture was not tested;
@@ -83,7 +84,7 @@ kernel combination has been tested. Missing T1 functionality remains in scope.
 | Saved fingerprints across reboot | 🟢 Available | Protected keybag storage and automatic restore; no routine re-enrollment. |
 | FaceTime HD camera | 🟢 Available | T1 H.264 support through the packaged UVC driver. Application format support still applies. |
 | Private T1 network and xART storage | 🟢 Available | Device-driven services; no manually named network profile required. |
-| Apple machine-data import | 🟡 Available with discovery limitations | Explicit same-machine EFI-tree/FDR backup works; automatic discovery can fail on some multi-ESP layouts. Import does not recreate lost data. |
+| Apple machine-data import | 🟡 Available; latest automatic-import fix awaits hardware confirmation | Explicit same-machine EFI-tree/FDR backup works; 0.1.10 fixes the reproduced service sandbox failure. Import does not recreate lost data. |
 | T1 startup and reboot recovery | 🟢 Available | Packaged device/service ordering restores the T1 stack after boot. |
 | T1 sleep/wake (system suspend/resume) | 🔴 Not working on the tested machine | Not supported currently. T1 recovery across system sleep/wake remains in scope; the cause of the host suspend failure is not established here. Screen blanking and waking the display are not system suspend/resume. |
 | T1 runtime power saving | 🟡 Limited | Runtime autosuspend is disabled for T1 stability; power-saving suspend/recovery is not a supported feature yet. |
@@ -261,6 +262,11 @@ Enrollment does **not** automatically enable sudo, Polkit or lock-screen login.
 Follow [safe PAM setup](docs/setup.md#enable-fingerprint-sign-in-safely) for your
 distribution, preserving password access and a root recovery shell. Do not
 blindly run a desktop setup wizard that replaces this matched fingerprint pair.
+
+For Omarchy's Quickshell lock screen, follow the
+[Touch ID unlock steps](docs/setup.md#omarchy-lock-screen-unlock) after verifying
+your enrolled finger. For desktop controls and HUDs, complete the optional
+integration's [automatic session startup](docs/setup.md#omarchy-session-startup).
 
 See [manual setup](docs/setup.md) for desktop providers, removal and recovery,
 and [How Touch ID works](docs/touch-id.md) for startup and authentication diagrams.

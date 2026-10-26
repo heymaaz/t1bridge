@@ -1,5 +1,5 @@
 pkgname=t1bridge-ncm-dkms
-pkgver=0.1.9
+pkgver=0.1.12
 pkgrel=1
 pkgdesc='DKMS package for the Apple T1 private NCM link'
 arch=('x86_64')
@@ -10,7 +10,7 @@ optdepends=('linux-headers: build modules for the Arch kernel')
 conflicts=('t1bridge-dkms')
 options=('!debug')
 source=("t1bridge-${pkgver}.tar.gz")
-sha256sums=('2ea0dde514056840cc3d84880c21f970342d598fc75392a754d0fedde99e43ff')
+sha256sums=('de9d2b857e4bb52d4ce5d0adc02c06ef32c9047fc99363a389c5fe30af6ccfcb')
 
 package() {
 	local source_root="${srcdir}/t1bridge-${pkgver}"

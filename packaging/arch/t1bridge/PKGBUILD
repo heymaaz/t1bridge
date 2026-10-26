@@ -1,16 +1,16 @@
 pkgname=t1bridge
-pkgver=0.1.9
+pkgver=0.1.12
 pkgrel=1
 pkgdesc='Apple T1 iBridge userspace services'
 arch=('x86_64')
 url='https://github.com/standardagents/t1bridge'
 license=('MIT')
-depends=('gcc-libs' 'glibc' 'iio-sensor-proxy' 'systemd>=256')
-makedepends=('cargo' 'pkgconf' 'rust' 'xz')
+depends=('curl' 'gcc-libs' 'glibc' 'iio-sensor-proxy' 'libarchive' 'openssl' 'systemd>=256' 'xz')
+makedepends=('cargo' 'pkgconf' 'rust')
 checkdepends=('git' 'gnupg' 'pacman-contrib')
 options=('!debug')
 source=("${pkgname}-${pkgver}.tar.gz")
-sha256sums=('2ea0dde514056840cc3d84880c21f970342d598fc75392a754d0fedde99e43ff')
+sha256sums=('de9d2b857e4bb52d4ce5d0adc02c06ef32c9047fc99363a389c5fe30af6ccfcb')
 
 build() {
 	local source_root="${srcdir}/${pkgname}-${pkgver}"
@@ -46,7 +46,9 @@ check() {
 	cargo test --locked --workspace --all-targets --all-features
 	local dynamic_dependencies
 	dynamic_dependencies="$(readelf -d target/release/t1bridge)"
-	[[ "${dynamic_dependencies}" != *'Shared library: [liblzma.so.5]'* ]]
+	for library in libcurl.so.4 libarchive.so.13 libcrypto.so.3 liblzma.so.5; do
+		[[ "${dynamic_dependencies}" == *"Shared library: [${library}]"* ]]
+	done
 	make -C packaging/arch/t1bridge verify PKGBUILD="${startdir}/PKGBUILD"
 }
 
