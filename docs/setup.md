@@ -29,7 +29,7 @@ Keep a working password login and back up the disk before changing boot
 configuration. Preserve the Apple EFI partition: it contains machine-specific
 data needed by Touch ID. Do not format it as part of installing Linux.
 
-Install these packages together from the official repository:
+Install the userspace packages and choose one of the two conflicting DKMS packages from the official repository:
 
 | Package | Purpose |
 | --- | --- |
